@@ -1,0 +1,74 @@
+; buble sorting :D
+push 555
+push 333
+push 444
+push 222
+push 111
+push 5      ; (5) рамер массива
+push 0      ; (6) сколько свопов за проход сделано
+
+; сравниваем все
+main_cycle:
+mov regc 0  ; бегунок по массиву
+
+loop:
+read rega regc ; прочитали ПЕРВЫЙ элемент из пары
+mov  regd regc
+add  regd 1
+read regb regd ; прочитали ВТОРОЙ элемент из пары
+
+; сравниваем 1 пару
+mov regd rega
+sub regd regb
+jz  check_regc
+and regd -2147483648 ; 0b10000000000000000000000000000000
+jz check_regc ; rega < regb -> regd == 2147483648
+; rega > regb -> regd == 0
+; своп
+
+write regb regc
+mov regd regc
+add regd 1
+write rega regd
+
+; выставляем swap_flag
+mov regd 1
+write regd 6
+
+;jmp print
+
+check_regc:
+read regd 5
+sub regd 2
+cmp regc regd
+jz check_swap_flag
+add regc 1 ; inc regc
+jmp loop
+
+
+check_swap_flag:
+
+read regd 6
+mov rega 0
+write rega 6
+mul regd 1
+jnz main_cycle
+
+print:
+mov regc 0
+qwe:
+read rega regc
+out rega
+read regd 5
+sub regd 1
+cmp regc regd
+jz qwe_end
+add regc 1
+jmp qwe
+qwe_end:
+
+end:
+
+
+
+

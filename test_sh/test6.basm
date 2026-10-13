@@ -1,0 +1,14 @@
+push 0
+mov regd 1
+push regd
+pop regd
+write regd 0
+push 0
+pop regd
+read regd 0
+push regd
+add regd 1
+write regd 0
+pop regd
+out regd
+push 0

@@ -1,0 +1,21 @@
+push 1
+push 2
+push 3
+push 4
+
+
+mov rega 333
+write rega 0
+
+pop regb
+out regb
+
+pop regb
+out regb
+
+pop regb
+out regb
+
+pop regb
+out regb
+

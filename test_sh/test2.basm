@@ -1,0 +1,67 @@
+mov regd 1
+push regd
+mov regd 1
+push regd
+pop regb
+pop rega
+sub rega regb
+jz __equal1
+and rega -2147483648
+jz __gt3
+push 0
+jmp __cmp_end2
+
+__gt3:
+push 1
+jmp __cmp_end2
+
+__equal1:
+push 0
+
+__cmp_end2:
+
+__conv_start5:
+pop regd
+test regd 1
+jz __ret_val_eq_0_4
+push 0
+jmp __conv_end6
+
+__ret_val_eq_0_4:
+push 1
+
+__conv_end6:
+pop regd
+mov regd 2
+push regd
+mov regd 1
+push regd
+pop regb
+pop rega
+sub rega regb
+jz __equal7
+and rega -2147483648
+jz __gt9
+push 0
+jmp __cmp_end8
+
+__gt9:
+push 1
+jmp __cmp_end8
+
+__equal7:
+push 0
+
+__cmp_end8:
+
+__conv_start11:
+pop regd
+test regd 1
+jz __ret_val_eq_0_10
+push 0
+jmp __conv_end12
+
+__ret_val_eq_0_10:
+push 1
+
+__conv_end12:

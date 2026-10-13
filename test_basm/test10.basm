@@ -1,0 +1,23 @@
+
+
+mov regd -2147483648
+out regd
+out 999899
+
+mov rega 1
+and rega regd
+out rega
+
+jz  m0
+jnz m1
+
+m0:
+out 900
+jmp end
+
+m1:
+out 911
+jmp end
+
+end:
+out 999

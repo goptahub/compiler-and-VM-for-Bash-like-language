@@ -1,0 +1,59 @@
+
+__if_start11:
+mov regd 2
+push regd
+mov regd 1
+push regd
+pop regb
+pop rega
+sub rega regb
+jz __equal1
+and rega -2147483648
+jz __gt3
+push 0
+jmp __cmp_end2
+
+__gt3:
+push 1
+jmp __cmp_end2
+
+__equal1:
+push 0
+
+__cmp_end2:
+
+__conv_start5:
+pop regd
+test regd 1
+jz __ret_val_eq_0_4
+push 0
+jmp __conv_end6
+
+__ret_val_eq_0_4:
+push 1
+
+__conv_end6:
+pop regd
+cmp regd 1
+jz __if_next12
+mov regd 123
+push regd
+pop regd
+out regd
+push 0
+jmp __if_end7
+
+__if_next12:
+
+__else_start9:
+mov regd 345
+push regd
+pop regd
+out regd
+push 0
+
+__else_end8:
+
+__if_end7:
+
+__if_end_qwe10:

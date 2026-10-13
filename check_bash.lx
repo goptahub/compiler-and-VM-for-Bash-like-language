@@ -1,0 +1,250 @@
+%option yylineno
+ 
+
+
+%{
+#include "check_bash.tab.h"  /* заголовок с токенами от bison */
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+
+#ifdef DEBUG
+    #define DBG_MSG(...) printf(__VA_ARGS__);
+#else
+    #define DBG_MSG(...) ((void)0)
+#endif
+
+#define ASSERT(v, err_type) if (v) {v=0; caught_error=err_type; return ERROR;}
+
+int RESERVED_WORD_OCCURED = 0;
+
+
+typedef enum _error_t {
+    NO_ERROR,
+    ERROR_RESERVED_WORD_CIRCUMSTANCE,
+    ERROR_GOT_UNEXPECTED_WORD
+} _error_t;
+
+extern _error_t caught_error;
+
+int eol_met = 0;
+
+extern void yyerrok(void);
+extern void yyclearin(void);
+void yyerror(const char *s);
+
+
+
+static char line_buf[4096] = "";
+static int pos = 0;
+
+/*
+(alias|declare|typeset|export|readonly|local)
+"sudo"/{WORD_DELIM} {DBG_MSG("token: sudo\n"); return sudo;}
+(dd|source|.|bg|bind|builtin|caller|cd|command|compgen|complete|compopt|dirs|disown|echo|enable|eval|exec|exit|export|fc|fg|getopts|hash|help|jobs|kill|let|logout|mapfile|readarray|popd|printf|pushd|pwd|read|readonly|set|shift|test|suspend|type|ulimit|unalias|unset|wait)/{WORD_DELIM} {
+    DBG_MSG("token: builtin_command_name [%s]\n", yytext);
+    return builtin_command_name;
+}
+PATTERN_1       ([-*]([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])+)
+PATTERN_2       (([._a-zA-Z0-9?\\:]|\[[._a-zA-Z0-9!\\]+\])*([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])*)
+PATTERN_3       ([/][a-zA-Z]([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])*)
+SIMPLE_PATTERN_1  ([*]([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])+)
+SIMPLE_PATTERN_2  (([._a-zA-Z0-9?\\:]|\[[._a-zA-Z0-9!\^\-*?\\]+\])([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])+)
+
+*/
+
+
+
+%}
+%x MATH
+
+NAME            ([_a-zA-Z][_a-zA-Z0-9]*)
+WORD_ITEM       [:#~._a-zA-Z0-9][-:#~._a-zA-Z0-9]*
+STRING_2        (($)?\"([^\\\"]|\\.)*\")
+STRING_1         (($)?'([^\\\"]|\\.)*')
+SPEC_PARAM      ("$"[_*@#?$!0-9\-])
+WORD_DELIM      [ \t\r\n|&;()>]
+HTML_TEXT       (\"[ \t\r\n]*(<.*>[ \t\r\n]*)+\")
+PATTERN         (([-._a-zA-Z0-9?\\:/*]|\[[._a-zA-Z0-9!\^\-*?\\]+\])+)
+WORD_TOKEN      ({WORD_ITEM}|{PATTERN}|(\\.)|(${NAME})|(\"$\(.*\)\")|{STRING_2}|{STRING_1}|{SPEC_PARAM}|{HTML_TEXT})+
+COMS            (#.*\n)
+DIGIT           [0-9]+
+DIGIT_DELIM     [-+*/%!~><&^|=]
+
+%%
+
+<INITIAL,MATH>(\\)[ \t]*[\r\n] {DBG_MSG("token: \[ \\t]*[\\r\\n]\n");}
+<INITIAL,MATH>[ ]+             {/*DBG_MSG("token: space\n");*/ RESERVED_WORD_OCCURED = 0; }
+<INITIAL,MATH>(\t)             {/*DBG_MSG("token: \\t\r\n");*/ RESERVED_WORD_OCCURED = 0; }
+<INITIAL,MATH>([ ]*((\n)|(#.*\n)))+     {DBG_MSG("token: \\n\n"); RESERVED_WORD_OCCURED = 0; return NEWLINE;}
+<INITIAL,MATH>([ ]*((\r\n)|(#.*\r\n)))+ {DBG_MSG("token: \\r\\n\n"); RESERVED_WORD_OCCURED = 0; return NEWLINE;}
+<INITIAL,MATH>([ ]*((\r)|(#.*\r)))+     {DBG_MSG("token: \\r\n"); RESERVED_WORD_OCCURED = 0; return NEWLINE;}
+
+
+<INITIAL,MATH>[|]              {DBG_MSG("token: |\n"); RESERVED_WORD_OCCURED = 0; return stick;}
+<INITIAL,MATH>"&"              {DBG_MSG("token: &\n"); RESERVED_WORD_OCCURED = 0; return ampersand;}
+<INITIAL,MATH>";"              {DBG_MSG("token: ;\n"); RESERVED_WORD_OCCURED = 0; return semicolon;}
+<INITIAL,MATH>"("              {DBG_MSG("token: (\n"); RESERVED_WORD_OCCURED = 0; return opening_curve;}
+<INITIAL,MATH>")"              {DBG_MSG("token: )\n"); RESERVED_WORD_OCCURED = 0; return closing_curve;}
+
+<MATH>"++"             {DBG_MSG("token: ++\n");return inc;}
+<MATH>"--"             {DBG_MSG("token: --\n");return dec;}
+
+
+<INITIAL,MATH>(=~|[*]=|[/]=|%=|[+]=|-=|<<=|>>=|&=|\^=|==|!=|<=|>=) {
+                    DBG_MSG("token: op_eq [%s]\n", yytext); return op_eq;}
+<MATH>"?"  {DBG_MSG("token: ?\n"); return question_sign;}
+<MATH>"+"  {DBG_MSG("token: +\n");return plus;}
+<MATH>"-"  {DBG_MSG("token: -\n");return minus;}
+
+<MATH>"**"|"%"|"^" {DBG_MSG("token: b_op[%s]\n", yytext);return b_op;}
+<INITIAL,MATH>"*"|"/" {DBG_MSG("token: b_op[%s]\n", yytext);return b_op;}
+
+<INITIAL,MATH>">>"             {DBG_MSG("token: >>\n"); RESERVED_WORD_OCCURED = 0; return shift_sign;}
+<INITIAL,MATH>"<<"             {DBG_MSG("token: <<\n"); RESERVED_WORD_OCCURED = 0; return shift_sign;}
+
+<INITIAL,MATH>">"              {DBG_MSG("token: >\n"); RESERVED_WORD_OCCURED = 0; return more_sign;}
+<INITIAL,MATH>"<"              {DBG_MSG("token: <\n"); RESERVED_WORD_OCCURED = 0; return less_sign;}
+
+"(("             {DBG_MSG("token: ((\n"); BEGIN(MATH); RESERVED_WORD_OCCURED = 0; return db_opening_curve;}
+<MATH>"))"             {DBG_MSG("token: ))\n"); BEGIN(INITIAL); RESERVED_WORD_OCCURED = 0; return db_closing_curve;}
+"&>"             {DBG_MSG("token: &>\n"); RESERVED_WORD_OCCURED = 0; return ampersand_more_sign;}
+">&"             {DBG_MSG("token: >&\n"); RESERVED_WORD_OCCURED = 0; return ampersand_more_sign;}
+<INITIAL,MATH>":"              {DBG_MSG("token: :\n");  RESERVED_WORD_OCCURED = 0; return colon;}
+
+<INITIAL,MATH>"||"             {DBG_MSG("token: ||\n"); RESERVED_WORD_OCCURED = 0; return db_stick;}
+<INITIAL,MATH>"&&"             {DBG_MSG("token: &&\n"); RESERVED_WORD_OCCURED = 0; return db_ampersand;}
+";;"             {DBG_MSG("token: ;;\n"); RESERVED_WORD_OCCURED = 0; return db_semicolon;}
+";&"             {DBG_MSG("token: ;&\n"); RESERVED_WORD_OCCURED = 0; return semicolon_ampersand;}
+";;&"            {DBG_MSG("token: ;;&\n"); RESERVED_WORD_OCCURED = 0; return db_semicolon_ampersand;}
+"|&"             {DBG_MSG("token: |&\n"); RESERVED_WORD_OCCURED = 0; return stick_ampersand;}
+
+"case"/{WORD_DELIM}         {DBG_MSG("token: case\n"); RESERVED_WORD_OCCURED = 1; return _case;}
+"coproc"/{WORD_DELIM}       {DBG_MSG("token: coproc\n"); RESERVED_WORD_OCCURED = 1; return _coproc;}
+"do"/{WORD_DELIM}           {DBG_MSG("token: do\n"); RESERVED_WORD_OCCURED = 1; return _do;}
+"done"/({WORD_DELIM}|`)     {DBG_MSG("token: done\n"); RESERVED_WORD_OCCURED = 1; return _done;}
+"elif"/({WORD_DELIM}|`)     {DBG_MSG("token: elif\n"); RESERVED_WORD_OCCURED = 1; return _elif;}
+"else"/{WORD_DELIM}         {DBG_MSG("token: else\n"); RESERVED_WORD_OCCURED = 1; return _else;}
+"esac"/({WORD_DELIM}|`)     {DBG_MSG("token: esac\n"); RESERVED_WORD_OCCURED = 1; return _esac;}
+"fi"/({WORD_DELIM}|`)       {DBG_MSG("token: fi\n"); RESERVED_WORD_OCCURED = 1; return _fi;}
+"for"/{WORD_DELIM}          {DBG_MSG("token: for\n"); RESERVED_WORD_OCCURED = 1; return _for;}
+"function"/{WORD_DELIM}     {DBG_MSG("token: function\n"); RESERVED_WORD_OCCURED = 1; return _function;}
+"if"/{WORD_DELIM}           {DBG_MSG("token: if\n"); RESERVED_WORD_OCCURED = 1; return _if;}
+"in"/{WORD_DELIM}           {DBG_MSG("token: in\n"); RESERVED_WORD_OCCURED = 1; return _in;}
+"select"/{WORD_DELIM}       {DBG_MSG("token: select\n"); RESERVED_WORD_OCCURED = 1; return _select;}
+"then"/{WORD_DELIM}         {DBG_MSG("token: then\n"); RESERVED_WORD_OCCURED = 1; return _then;}
+"until"/{WORD_DELIM}        {DBG_MSG("token: until\n"); RESERVED_WORD_OCCURED = 1; return _until;}
+"while"/{WORD_DELIM}        {DBG_MSG("token: while\n"); RESERVED_WORD_OCCURED = 1; return _while;}
+"time"/{WORD_DELIM}         {DBG_MSG("token: time\n"); RESERVED_WORD_OCCURED = 1; return _time;}
+"!"/{WORD_DELIM}            {DBG_MSG("token: !\n"); RESERVED_WORD_OCCURED = 1; return _exclamation_mark;}
+<MATH>"!"                   {DBG_MSG("token: ! math\n"); RESERVED_WORD_OCCURED = 1; return _exclamation_mark;}
+"{"/{WORD_DELIM}            {DBG_MSG("token: {\n"); RESERVED_WORD_OCCURED = 1; return _opening_brace;}
+"}"/({WORD_DELIM}|`)        {DBG_MSG("token: {\n"); RESERVED_WORD_OCCURED = 1; return _closing_brace;}
+"[["/{WORD_DELIM}           {DBG_MSG("token: [[\n"); RESERVED_WORD_OCCURED = 1; return _opening_db_square_bracket;}
+"]]"/({WORD_DELIM}|`)       {DBG_MSG("token: ]]\n"); RESERVED_WORD_OCCURED = 1; return _closing_db_square_bracket;}
+
+
+
+(alias|declare|typeset|export|readonly|local)/{WORD_DELIM} {
+    DBG_MSG("token: declaration command [%s]\n", yytext);
+    return declaration_command;
+}
+
+"["/{WORD_DELIM}                 {DBG_MSG("token: [\n"); RESERVED_WORD_OCCURED = 1; return opening_square_bracket;}
+"]"/({WORD_DELIM}|`)             {DBG_MSG("token: ]\n"); RESERVED_WORD_OCCURED = 1; return closing_square_bracket;}
+
+"$("                             {DBG_MSG("token: dollar_opening_curve [%s]\n", yytext); return dollar_opening_curve;}
+"$(("                            {DBG_MSG("token: dollar_db_opening_curve [%s]\n", yytext); BEGIN(MATH); return dollar_db_opening_curve;}
+
+"./"{NAME}                       {DBG_MSG("token: ./cmd [%s]\n", yytext); return WORD;}
+"<>"                             {DBG_MSG("token: less_more [%s]\n", yytext); return less_more;}
+
+"`".*"`"                         {DBG_MSG("token: `command` [%s]\n", yytext); return WORD;}
+<INITIAL,MATH>{DIGIT}/({WORD_DELIM}|[`=]|{DIGIT_DELIM}) {
+                                    DBG_MSG("token: number [%s]\n", yytext); yylval.num = atol(yytext); return number;}
+
+"-"[a-zA-Z0-9]+/({WORD_DELIM}|[`=])  {DBG_MSG("token: option [%s]\n", yytext); yylval.letters = strdup(yytext); return option;}
+"+%"[a-zA-Z0-9]+/({WORD_DELIM}|[`=])  {DBG_MSG("token: option [%s]\n", yytext); yylval.letters = strdup(yytext); return option;}
+
+
+\$\{.*\}                         {DBG_MSG("token: ${.*} [%s]\n", yytext); return WORD;}
+
+{NAME}=             {
+                    DBG_MSG("token: assignment(var or massive) [%s]\n", yytext);
+                    yylval.letters = strdup(yytext);
+                    return assignment;
+                    }
+{NAME}"[".*"]"=     {
+                    DBG_MSG("token: massive[index] [%s]\n", yytext);
+                    yylval.letters = strdup(yytext);
+                    return assignment;
+                    }
+
+
+
+
+(\{{DIGIT}..{DIGIT}(..{DIGIT})?\}) {
+                    DBG_MSG("token: {digit..digit(..digit)?}\n");
+                    return WORD;
+                    }
+
+
+<MATH>{NAME}/({WORD_DELIM}|{DIGIT_DELIM}) {
+                    DBG_MSG("token: name math [%s]\n", yytext); 
+                    return WORD;
+                    }
+${NAME}/({WORD_DELIM}|[`=]) {
+                    DBG_MSG("token: $name /= [%s]\n", yytext); 
+                    if (RESERVED_WORD_OCCURED) {
+                        RESERVED_WORD_OCCURED = 0;
+                        caught_error = ERROR_RESERVED_WORD_CIRCUMSTANCE;
+                        DBG_MSG("token: ERROR (ERROR_RESERVED_WORD_CIRCUMSTANCE) [%s]\n", yytext);
+                        return ERROR;
+                    }
+                    yylval.letters = strdup(yytext);
+                    return WORD;
+                    }
+
+
+{NAME}/({WORD_DELIM}|`) {
+                    DBG_MSG("token: name [%s]\n", yytext); 
+                    if (RESERVED_WORD_OCCURED) {
+                        RESERVED_WORD_OCCURED = 0;
+                        caught_error = ERROR_RESERVED_WORD_CIRCUMSTANCE;
+                        DBG_MSG("token: ERROR (ERROR_RESERVED_WORD_CIRCUMSTANCE) [%s]\n", yytext);
+                        return ERROR;
+                    }
+                    yylval.letters = strdup(yytext);
+                    return name;
+                    }
+
+
+
+
+<INITIAL,MATH>[=] {DBG_MSG("token: =\n"); return EQUAL;}
+
+{WORD_TOKEN}+/({WORD_DELIM}|`|=)   {
+                    if (RESERVED_WORD_OCCURED) {
+                        RESERVED_WORD_OCCURED = 0;
+                        caught_error = ERROR_RESERVED_WORD_CIRCUMSTANCE;
+                        DBG_MSG("token: ERROR (ERROR_RESERVED_WORD_CIRCUMSTANCE) [%s]\n", yytext);
+                        return ERROR;
+                    }
+                    DBG_MSG("token: WORD [%s]\n", yytext);
+                    yylval.letters = strdup(yytext);
+                    return WORD;
+                 }
+
+<<EOF>>          {DBG_MSG("token: EOF reached"); yyterminate(); }
+.                {DBG_MSG("token: ERROR [%s]\n", yytext); return ERROR;}
+
+%%
+
+
+
+int yywrap(void) {
+    return 1;  // 1 означает, что больше нет входных файлов
+}
+
+
+

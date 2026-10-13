@@ -1,0 +1,182 @@
+push 0
+push 0
+push 0
+push 0
+mov regd 2
+push regd
+pop regd
+write regd 0
+push 0
+pop regd
+mov regd 5
+push regd
+pop regd
+write regd 1
+push 0
+pop regd
+mov regd 1
+push regd
+pop regd
+write regd 2
+push 0
+pop regd
+
+__if_start27:
+read regd 1
+push regd
+mov regd 0
+push regd
+pop regb
+pop rega
+sub rega regb
+jz __equal1
+and rega -2147483648
+jz __gt3
+push 0
+jmp __cmp_end2
+
+__gt3:
+push 1
+jmp __cmp_end2
+
+__equal1:
+push 0
+
+__cmp_end2:
+
+__conv_start5:
+pop regd
+test regd 1
+jz __ret_val_eq_0_4
+push 0
+jmp __conv_end6
+
+__ret_val_eq_0_4:
+push 1
+
+__conv_end6:
+pop regd
+cmp regd 1
+jz __if_next28
+mov regd 0
+push regd
+pop regd
+write regd 3
+push 0
+pop regd
+
+__while_start21:
+push 1
+
+__chk_while_cond19:
+read regd 3
+push regd
+read regd 1
+push regd
+pop regb
+pop rega
+sub rega regb
+jz __equal7
+and rega -2147483648
+jnz __lt9
+push 0
+jmp __cmp_end8
+
+__lt9:
+push 1
+jmp __cmp_end8
+
+__equal7:
+push 0
+
+__cmp_end8:
+
+__conv_start11:
+pop regd
+test regd 1
+jz __ret_val_eq_0_10
+push 0
+jmp __conv_end12
+
+__ret_val_eq_0_10:
+push 1
+
+__conv_end12:
+pop regd
+cmp regd 1
+jz __while_end20
+pop regd
+
+__while_action22:
+read regd 2
+push regd
+read regd 0
+push regd
+pop regb
+pop rega
+mul rega regb
+push rega
+pop regd
+write regd 2
+push regd
+
+__conv_start14:
+pop regd
+test regd 1
+jz __ret_val_eq_0_13
+push 0
+jmp __conv_end15
+
+__ret_val_eq_0_13:
+push 1
+
+__conv_end15:
+pop regd
+read regd 3
+push regd
+mov regd 1
+push regd
+pop regb
+pop rega
+add rega regb
+push rega
+pop regd
+write regd 3
+push regd
+
+__conv_start17:
+pop regd
+test regd 1
+jz __ret_val_eq_0_16
+push 0
+jmp __conv_end18
+
+__ret_val_eq_0_16:
+push 1
+
+__conv_end18:
+jmp __chk_while_cond19
+
+__while_end20:
+jmp __if_end23
+
+__if_next28:
+
+__else_start25:
+mov regd 1
+push regd
+pop regd
+write regd 2
+push 0
+
+__else_end24:
+
+__if_end23:
+
+__if_end_qwe26:
+pop regd
+read regd 2
+push regd
+pop regd
+out regd
+push 0

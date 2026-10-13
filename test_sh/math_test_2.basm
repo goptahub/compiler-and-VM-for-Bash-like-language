@@ -1,0 +1,54 @@
+push 0
+mov regd 0
+push regd
+pop regd
+write regd 0
+push 0
+pop regd
+mov regd 5
+push regd
+mov regd 3
+push regd
+mov regd 2
+push regd
+mov regd 4
+push regd
+pop regb
+pop rega
+add rega regb
+push rega
+pop regb
+pop rega
+mul rega regb
+push rega
+pop regb
+pop rega
+add rega regb
+push rega
+mov regd 2
+push regd
+pop regb
+pop rega
+div rega regb
+push rega
+pop regd
+write regd 0
+push regd
+
+__conv_start2:
+pop regd
+test regd 1
+jz __ret_val_eq_0_1
+push 0
+jmp __conv_end3
+
+__ret_val_eq_0_1:
+push 1
+
+__conv_end3:
+pop regd
+read regd 0
+push regd
+pop regd
+out regd
+push 0

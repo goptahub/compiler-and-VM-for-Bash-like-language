@@ -1,0 +1,119 @@
+%option yylineno
+
+
+%{
+#include "basm_parser.tab.h"
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+
+#ifdef DEBUG
+    #define DBG_MSG(...) printf(__VA_ARGS__);
+#else
+    #define DBG_MSG(...) ((void)0)
+#endif
+
+extern void yyerrok(void);
+extern void yyclearin(void);
+void yyerror(const char *s);
+int eof_seen = 0;
+%}
+
+SPACE [ \t]+
+COM   (;).*
+EOL   ({COM})*[\r\n]+
+DELIM ({SPACE}|{EOL})+
+LABEL [_a-zA-Z][_a-zA-Z0-9]*
+NUMBER (-)?[0-9]+
+
+%%
+{SPACE}  {}
+{EOL}  { DBG_MSG("token: NEWLINE\n"); return NEWLINE; }
+
+{NUMBER}/{DELIM} { DBG_MSG("token: number [%s]\n", yytext); 
+                    yylval.num = atol(yytext); return number;}
+
+
+(rega)/{DELIM} { DBG_MSG("token: rega\n"); return rega; }
+(regb)/{DELIM} { DBG_MSG("token: regb\n"); return regb; }
+(regc)/{DELIM} { DBG_MSG("token: regc\n"); return regc; }
+(regd)/{DELIM} { DBG_MSG("token: regd\n"); return regd; }
+(rege)/{DELIM} { DBG_MSG("token: rege\n"); return rege; }
+(regf)/{DELIM} { DBG_MSG("token: regf\n"); return regf; }
+(regg)/{DELIM} { DBG_MSG("token: regg\n"); return regg; }
+(regh)/{DELIM} { DBG_MSG("token: regh\n"); return regh; }
+
+(out)/{DELIM}  { DBG_MSG("token: out\n");  return out; }
+(push)/{DELIM} { DBG_MSG("token: push\n"); return push;}
+(pop)/{DELIM}  { DBG_MSG("token: pop\n");  return pop; }
+
+(jmp)/{DELIM}  { DBG_MSG("token: jmp\n"); return jmp;}
+(jz)/{DELIM}   { DBG_MSG("token: jz\n");  return jz; }
+(jnz)/{DELIM}  { DBG_MSG("token: jnz\n"); return jnz;}
+
+(mov)/{DELIM} { DBG_MSG("token: mov\n"); return mov; }
+
+(add)/{DELIM} { DBG_MSG("token: add\n"); return add; }
+(sub)/{DELIM} { DBG_MSG("token: sub\n"); return sub; }
+(mul)/{DELIM} { DBG_MSG("token: mul\n"); return mul; }
+(pow)/{DELIM} { DBG_MSG("token: pow\n"); return pow; }
+(div)/{DELIM} { DBG_MSG("token: div\n"); return _div;}
+(mod)/{DELIM} { DBG_MSG("token: mod\n"); return mod; }
+
+(shr)/{DELIM} { DBG_MSG("token: shr\n"); return shr; }
+(shl)/{DELIM} { DBG_MSG("token: shl\n"); return shl; }
+(or)/{DELIM}  { DBG_MSG("token: or\n");  return or;  }
+(xor)/{DELIM} { DBG_MSG("token: xor\n"); return xor; }
+(and)/{DELIM} { DBG_MSG("token: and\n"); return and; }
+(not)/{DELIM} { DBG_MSG("token: not\n"); return not; }
+
+(read)/{DELIM}  { DBG_MSG("token: read\n"); return read_; }
+(write)/{DELIM} { DBG_MSG("token: write\n"); return write_; }
+
+(test)/{DELIM}  { DBG_MSG("token: test\n"); return test; }
+(cmp)/{DELIM}   { DBG_MSG("token: cmp\n"); return cmp; }
+
+{NUMBER} { DBG_MSG("token: number EOF [%s]\n", yytext); 
+                    yylval.num = atol(yytext); return number;}
+
+{LABEL}/({DELIM}|:) {DBG_MSG("token: label [%s]\n", yytext); 
+    yylval.string = strdup(yytext); 
+    return label;
+    }
+
+(:)/{DELIM} { DBG_MSG("token: colon\n"); return colon; }
+
+(rega) { DBG_MSG("token: rega EOF\n"); return rega; }
+(regb) { DBG_MSG("token: regb EOF\n"); return regb; }
+(regc) { DBG_MSG("token: regc EOF\n"); return regc; }
+(regd) { DBG_MSG("token: regd EOF\n"); return regd; }
+
+(rege) { DBG_MSG("token: rege EOF\n"); return rege; }
+(regf) { DBG_MSG("token: regf EOF\n"); return regf; }
+(regg) { DBG_MSG("token: regg EOF\n"); return regg; }
+(regh) { DBG_MSG("token: regh EOF\n"); return regh; }
+
+{LABEL} {DBG_MSG("token: label [%s]\n", yytext); 
+    yylval.string = strdup(yytext); 
+    return label;
+    }
+
+(:) { DBG_MSG("token: colon\n"); return colon; }
+
+<<EOF>> {
+            DBG_MSG("token: EOF reached\n");
+            if (!eof_seen) {
+                eof_seen = 1;
+                return NEWLINE;   // возвращаем NEWLINE при первом EOF
+            } else {
+                yyterminate();     // при втором EOF завершаемся
+            }
+        }
+.       { DBG_MSG("token: ERROR [%s]\n", yytext); return ERROR; }
+
+
+%%
+
+int yywrap(void) {
+    return 1;  // 1 означает, что больше нет входных файлов
+}

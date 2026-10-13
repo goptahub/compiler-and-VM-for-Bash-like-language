@@ -1,0 +1,20 @@
+mov regc 1
+
+loop:
+
+mov rega regc
+push rega
+add regc 1
+
+mov regd 3
+sub regd regc
+jnz loop
+
+pop rega
+out rega
+
+pop rega
+out rega
+
+pop rega
+out rega

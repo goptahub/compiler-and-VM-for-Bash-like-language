@@ -1,0 +1,148 @@
+%{
+#include "sh_parser.tab.h"
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
+
+#ifdef DEBUG
+    #define DBG_MSG(...) printf(__VA_ARGS__);
+#else
+    #define DBG_MSG(...) ((void)0)
+#endif
+
+int open_curves = 0;
+
+
+%}
+
+%option yylineno
+
+SPACE    ([ \t]+)
+NL       (\r\n|\n)
+COM      (#.*)
+EOL      (({SPACE}?({COM}|[\r\n]))+)
+VARIABLE ([_a-zA-Z][_a-zA-Z0-9]*)
+NUMBER   ([0-9]+)
+
+WORD_DELIM ({SPACE}|{EOL})
+
+NOT_POST_OP_END ((*|/|%|+|-|<<|>>|&|^|\|)[=])
+POST_OP_END ([-+*/%><=&^|?:,)\]]|(!=))
+
+LINE_FOLLOWS ([\\]({SPACE})?{EOL})
+
+%%
+
+{EOL} {DBG_MSG("token: NEWLINE\n"); return NEWLINE;}
+{SPACE} {}
+{LINE_FOLLOWS} {}
+
+"-eq"/{WORD_DELIM} {DBG_MSG("token: -eq\n"); return eq_option;}
+"-ne"/{WORD_DELIM} {DBG_MSG("token: -ne\n"); return ne_option;}
+"-lt"/{WORD_DELIM} {DBG_MSG("token: -lt\n"); return lt_option;}
+"-le"/{WORD_DELIM} {DBG_MSG("token: -le\n"); return le_option;}
+"-gt"/{WORD_DELIM} {DBG_MSG("token: -gt\n"); return gt_option;}
+"-ge"/{WORD_DELIM} {DBG_MSG("token: -ge\n"); return ge_option;}
+
+
+
+"++"/{SPACE}?{VARIABLE} {DBG_MSG("token: ++\n"); return pre_inc;}
+"--"/{SPACE}?{VARIABLE} {DBG_MSG("token: --\n"); return pre_dec;}
+"++"/({SPACE})?{POST_OP_END} {DBG_MSG("token: ++\n"); return post_inc;}
+"--"/({SPACE})?{POST_OP_END} {DBG_MSG("token: --\n"); return post_dec;}
+"**" {DBG_MSG("token: **\n"); return power;}
+"*=" {DBG_MSG("token: *=\n"); return mul_eq;}
+"/=" {DBG_MSG("token: /=\n"); return div_eq;}
+"%=" {DBG_MSG("token: %=\n"); return mod_eq;}
+"+=" {DBG_MSG("token: +=\n"); return plus_eq;}
+"-=" {DBG_MSG("token: -=\n"); return minus_eq;}
+"&=" {DBG_MSG("token: &=\n"); return ampersand_eq;}
+"^=" {DBG_MSG("token: ^=\n"); return xor_eq;}
+"|=" {DBG_MSG("token: |=\n"); return stick_eq;}
+"<<=" {DBG_MSG("token: <<=\n"); return shl_eq;}
+">>=" {DBG_MSG("token: >>=\n"); return shr_eq;}
+"<=" {DBG_MSG("token: <=\n"); return less_eq;}
+">=" {DBG_MSG("token: >=\n"); return more_eq;}
+"!=" {DBG_MSG("token: !=\n"); return exclamation_eq;}
+"==" {DBG_MSG("token: ==\n"); return db_eq;}
+"&&" {DBG_MSG("token: &&\n"); return db_ampersand;}
+"||" {DBG_MSG("token: ||\n"); return db_stick;}
+"<<" {DBG_MSG("token: <<\n"); return shl;}
+">>" {DBG_MSG("token: >>\n"); return shr;}
+"=" {DBG_MSG("token: =\n"); return eq;}
+"<" {DBG_MSG("token: <\n"); return less;}
+">" {DBG_MSG("token: >\n"); return more;}
+"*" {DBG_MSG("token: *\n"); return mul;}
+"/" {DBG_MSG("token: /\n"); return division;}
+"%" {DBG_MSG("token: %\n"); return mod;}
+"+" {DBG_MSG("token: +\n"); return plus;}
+"-" {DBG_MSG("token: -\n"); return minus;}
+"^" {DBG_MSG("token: ^\n"); return xor;}
+"&" {DBG_MSG("token: &\n"); return ampersand;}
+"|" {DBG_MSG("token: |\n"); return stick;}
+"?" {DBG_MSG("token: ?\n"); return question;}
+":" {DBG_MSG("token: :\n"); return colon;}
+";" {DBG_MSG("token: ;\n"); return semicolon;}
+"," {DBG_MSG("token: ,\n"); return comma;}
+
+"for"/{WORD_DELIM}   { DBG_MSG("token: for\n"); return _for;}
+"while"/{WORD_DELIM} { DBG_MSG("token: while\n"); return _while;}
+"in"/{WORD_DELIM}    { DBG_MSG("token: in\n"); return _in;}
+"do"/{WORD_DELIM}    { DBG_MSG("token: do\n"); return _do;}
+"done"/{WORD_DELIM}  { DBG_MSG("token: done\n"); return _done;}
+"if"/{WORD_DELIM}    { DBG_MSG("token: if\n"); return _if;}
+"then"/{WORD_DELIM}  { DBG_MSG("token: then\n"); return _then;}
+"elif"/{WORD_DELIM}  { DBG_MSG("token: elif\n"); return _elif;}
+"else"/{WORD_DELIM}  { DBG_MSG("token: else\n"); return _else;}
+"fi"/{WORD_DELIM}    { DBG_MSG("token: fi\n"); return _fi;}
+
+"[[" {DBG_MSG("token: [[\n"); return _db_opening_square_bracket;}
+"]]" {DBG_MSG("token: ]]\n"); return _db_closing_square_bracket;}
+
+"$(" {DBG_MSG("token: $(\n"); return dollar_opening_curve;}
+"$((" {DBG_MSG("token: $((\n"); return dollar_db_opening_curve;}
+"(" {DBG_MSG("token: (\n"); return opening_curve;}
+")" {DBG_MSG("token: )\n"); return closing_curve;}
+"{" {DBG_MSG("token: {\n"); return _opening_brace;}
+"}" {DBG_MSG("token: }\n"); return _closing_brace;}
+"[" {DBG_MSG("token: [\n"); return opening_square_bracket;}
+"]" {DBG_MSG("token: ]\n"); return closing_square_bracket;}
+
+"echo" {DBG_MSG("token: echo\n"); return echo;}
+
+{VARIABLE}(=)[\\]{NL}           {DBG_MSG("token: assignment=\\: %s\n", yytext); 
+    yylval.string=strdup(yytext); yylval.string[strlen(yylval.string)-3]=0; return assignment;}
+{VARIABLE}(=){SPACE}            {DBG_MSG("token: ERROR: %s\n", yytext); 
+    return ERROR;}
+{VARIABLE}(=)                   {DBG_MSG("token: assignment=: %s\n", yytext); 
+    yylval.string=strdup(yytext); yylval.string[strlen(yylval.string)-1]=0; return assignment;}
+{VARIABLE}                      {DBG_MSG("token: VAR: %s\n", yytext); 
+    yylval.string=strdup(yytext); return VAR;}
+${VARIABLE}                     {DBG_MSG("token: VAR_VALUE: %s\n", yytext); 
+    yylval.string=strdup(yytext+1); return VAR_VALUE;}
+
+
+
+
+
+"$?" {DBG_MSG("token: $?\n"); return EXITCODE;}
+
+{NUMBER} {DBG_MSG("token: %s\n", yytext); yylval.string=strdup(yytext); return NUM;}
+
+
+<<EOF>>          {DBG_MSG("token: EOF reached\n"); yyterminate(); }
+.                {DBG_MSG("token: ERROR [%s]\n", yytext); return ERROR;}
+
+
+
+%%
+
+int yywrap(void) {
+    return 1;  // 1 means no input data
+}
+
+
+/*
+"((" {DBG_MSG("token: ((\n"); return db_opening_curve;}
+"))" {DBG_MSG("token: ))\n"); return db_closing_curve;}
+*/

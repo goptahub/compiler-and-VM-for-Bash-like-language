@@ -1,0 +1,29 @@
+push 0
+mov regd 1
+push regd
+pop regd
+write regd 0
+push 0
+pop regd
+read regd 0
+push regd
+add regd 1
+write regd 0
+read regd 0
+sub regd 1
+write regd 0
+push regd
+pop regb
+pop rega
+cmp rega regb
+jz __equal1
+push 0
+jmp __cmp_end2
+
+__equal1:
+push 1
+
+__cmp_end2:
+pop regd
+out regd
+push 0

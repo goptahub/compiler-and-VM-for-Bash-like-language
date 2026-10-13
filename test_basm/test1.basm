@@ -1,0 +1,6 @@
+label:
+mov rega 10
+mov regb rega
+add regb -3
+out regb
+jz label

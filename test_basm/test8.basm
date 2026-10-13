@@ -1,0 +1,4 @@
+mov rega 7
+and rega 5
+xor rega 4
+out rega

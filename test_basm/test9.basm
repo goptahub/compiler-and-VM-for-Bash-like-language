@@ -1,0 +1,13 @@
+mov rega 1
+shl rega 31
+out rega
+mov regb -7
+mov regc rega
+and regc regb
+out regc
+jz nz
+out 9000000
+jmp end
+nz:
+out 9111111
+end:

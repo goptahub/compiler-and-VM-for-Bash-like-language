@@ -1,0 +1,34 @@
+mov rega 1
+mov regb 0
+
+test rega regb
+jz label1
+
+out 100
+
+label1:
+test rega regb
+jnz label2
+
+out 111
+
+label2:
+out 222
+mov regc 66
+mov regd 66
+cmp regc regd
+jz label3
+
+out 500
+
+label3:
+out 333
+mov regc 77
+mov regd 78
+cmp regc regd
+jz label4
+
+out 444
+
+label4:
+out 555

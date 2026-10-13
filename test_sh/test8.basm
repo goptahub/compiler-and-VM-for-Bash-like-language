@@ -1,0 +1,32 @@
+push 0
+push 0
+push 0
+push 0
+push 0
+mov regd 111
+push regd
+mov regd 111
+push regd
+mov regd 2
+push regd
+pop regb
+pop rega
+mul rega regb
+push rega
+mov regd 333
+push regd
+mov regd 444
+push regd
+mov regd 555
+push regd
+pop regd
+write regd 0
+pop regd
+write regd 1
+pop regd
+write regd 2
+pop regd
+write regd 3
+pop regd
+write regd 4
+push 0

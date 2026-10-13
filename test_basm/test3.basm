@@ -1,0 +1,15 @@
+push 1
+push 2
+push 3
+push 4
+
+mov regc 4
+
+read_stack:
+pop rega
+out rega
+sub regc 1
+test regc 1
+jnz read_stack
+
+out 555

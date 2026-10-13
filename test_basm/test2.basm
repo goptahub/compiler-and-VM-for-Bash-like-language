@@ -1,0 +1,10 @@
+mov rega 1
+out rega
+loop:
+add rega 1
+out rega
+mov regb 10
+sub regb rega
+jnz loop
+mov regd 999
+out regd
